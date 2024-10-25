@@ -3,6 +3,10 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -105,6 +109,8 @@ public class Main extends JFrame {
             "Zambia is known as the 'Copper Country' due to its rich copper deposits.",
             "The Zambian national football team is nicknamed 'Chipolopolo', meaning 'Copper Bullets'."
     };
+    private static final int QUESTIONS_PER_CATEGORY = 10;
+    private static final int TIMER_SECONDS = 15;
 
     public Main() {
         createCategories();
@@ -114,6 +120,8 @@ public class Main extends JFrame {
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new CardLayout());
+        setResizable(false);
+        setLocationRelativeTo(null);
 
         createWelcomePanel();
         createCategoryPanel();
@@ -318,7 +326,7 @@ public class Main extends JFrame {
         timerLabel.setForeground(new Color(0xC0392B));
         bottomPanel.add(timerLabel, BorderLayout.NORTH);
 
-        progressBar = new JProgressBar(0, 10);  // Assuming 10 questions per category
+        progressBar = new JProgressBar(0, QUESTIONS_PER_CATEGORY);
         progressBar.setStringPainted(true);
         progressBar.setFont(new Font("Arial", Font.PLAIN, 14));
         progressBar.setForeground(new Color(0x28B463));
@@ -341,13 +349,18 @@ public class Main extends JFrame {
 
     private void startCategoryQuiz(Category category) {
         currentCategory = category;
-        questions = category.questions;
+        questions = getRandomQuestions(category.questions, QUESTIONS_PER_CATEGORY);
         currentQuestion = 0;
         score = 0;
-        shuffleQuestions();
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Quiz");
         updateProgressBar();
         loadNextQuestion();
+    }
+
+    private QuizQuestion[] getRandomQuestions(QuizQuestion[] allQuestions, int count) {
+        List<QuizQuestion> questionList = new ArrayList<>(Arrays.asList(allQuestions));
+        Collections.shuffle(questionList);
+        return questionList.subList(0, Math.min(count, questionList.size())).toArray(new QuizQuestion[0]);
     }
 
     private void loadNextQuestion() {
@@ -375,7 +388,7 @@ public class Main extends JFrame {
     }
 
     private void startTimer() {
-        timeLeft = 10;
+        timeLeft = TIMER_SECONDS;
         if (timer != null) {
             timer.cancel();
         }
@@ -384,7 +397,10 @@ public class Main extends JFrame {
             @Override
             public void run() {
                 if (timeLeft > 0) {
-                    SwingUtilities.invokeLater(() -> timerLabel.setText("Time left: " + timeLeft));
+                    SwingUtilities.invokeLater(() -> {
+                        timerLabel.setText("Time left: " + timeLeft);
+                        timerLabel.setForeground(timeLeft <= 5 ? Color.RED : new Color(0xC0392B));
+                    });
                     timeLeft--;
                 } else {
                     timer.cancel();
@@ -460,15 +476,6 @@ public class Main extends JFrame {
         JOptionPane.showMessageDialog(this, "Quiz Paused");
         currentQuestion = (currentQuestion + 1) % questions.length;
         loadNextQuestion();
-    }
-
-    private void shuffleQuestions() {
-        for (int i = questions.length - 1; i > 0; i--) {
-            int index = (int) (Math.random() * (i + 1));
-            QuizQuestion temp = questions[index];
-            questions[index] = questions[i];
-            questions[i] = temp;
-        }
     }
 
     private static void loadHighScores() {
